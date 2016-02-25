@@ -1,0 +1,18 @@
+;
+; BIND reverse data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     chimay.beer. root.chimay.beer. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+                NS      chimay.beer.
+
+
+11      IN      PTR     ftp.chimay.beer.
+11      IN      PTR     www.chimay.beer.
+12      IN      PTR     db.chimay.beer.
+

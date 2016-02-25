@@ -1,0 +1,80 @@
+---
+
+- name: apply common configuration
+  hosts: all
+
+- name: DNS configuration
+  hosts: dns
+  become: yes
+  become_user: root
+  tasks:
+  - name: install bind9
+    apt: name=bind9 state=present
+  - name: set bind9 options
+    copy: src=configs/dns/named.conf.options dest=/etc/bind/named.conf.options
+  - name: set bind9 local zones
+    copy: src=configs/dns/named.conf.local dest=/etc/bind/named.conf.local
+  - name: install chimay.beer zone
+    copy: src=configs/dns/db.chimay.beer dest=/etc/bind/db.chimay.beer
+  - name: install reverse chimay.beer zone
+    copy: src=configs/dns/db.192 dest=/etc/bind/db.192
+  - name: restart bind9 server
+    service: name=bind9 state=restarted 
+
+- name: TFTP configuration
+  hosts: www
+  become: yes
+  become_user: root
+  tasks:
+  - debconf: name=atftpd question='atftpd/multicast' value='true' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/logtofile' value='false' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/port' value='69' vtype='string'
+  - debconf: name=atftpd question='atftpd/retry-timeout' value='5' vtype='string'
+  - debconf: name=atftpd question='atftpd/ttl' value='1' vtype='string'
+  - debconf: name=atftpd question='atftpd/logfile' value='/var/log/atftpd.log' vtype='string'
+  - debconf: name=atftpd question='atftpd/maxthread' value='100' vtype='string'
+  - debconf: name=atftpd question='atftpd/mcast_addr' value='239.239.239.0-255' vtype='string'
+  - debconf: name=atftpd question='atftpd/tsize' value='true' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/tftpd-timeout' value='300' vtype='string'
+  - debconf: name=atftpd question='atftpd/timeout' value='true' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/blksize' value='true' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/verbosity' value='7 (LOG_DEBUG)' vtype='select'
+  - debconf: name=atftpd question='atftpd/use_inetd' value='false' vtype='boolean'
+  - debconf: name=atftpd question='atftpd/mcast_port' value='1758' vtype='string'
+  - debconf: name=atftpd question='atftpd/basedir' value='/tftpboot' vtype='string'
+  - name: install atftpd
+    apt: name=atftpd state=present
+  - file: path=/tftpboot state=directory
+  - copy: src=configs/tftp/mysql.passwd dest=/tftpboot/mysql.passwd mode=0440 owner=nobody group=root
+
+- name: Apache configuration
+  hosts: www
+  become: yes
+  become_user: root
+  tasks:
+  - name: install apache
+    apt: name=apache2 state=present
+  - copy: src=configs/www/chimay.beer.conf dest=/etc/apache2/sites-enabled/chimay.beer.conf
+  - file: path=/var/www/chimay state=directory
+  - copy: src=configs/www/index.html dest=/var/www/chimay/index.html
+  - file: path=/var/www/chimay/secret state=directory
+  - file: src=/tftpboot dest=/var/www/chimay/secret/tftpboot state=link
+  - name: restart apache server
+    service: name=apache2 state=restarted
+
+- name: MySQL Configuration
+  hosts: db
+  become: yes
+  become_user: root
+  tasks:
+  - debconf: name=mysql-server question='mysql-server/root_password' value='system' vtype='string'
+  - debconf: name=mysql-server question='mysql-server/root_password_again' value='system' vtype='string'
+  - name: install MySQL
+    apt: name=mysql-server state=present
+  - copy: src=configs/db/schema.sql dest=/tmp/schema.sql
+  - copy: src=configs/db/beers.txt dest=/tmp/beers.txt
+  - copy: src=configs/db/drunkers.txt dest=/tmp/drunkers.txt
+  - copy: src=configs/db/rating.txt dest=/tmp/rating.txt
+  - script: configs/db/db.sh
+  - service: name=mysql state=restarted
+

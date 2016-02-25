@@ -1,0 +1,20 @@
+;
+; BIND data file for local loopback interface
+;
+$TTL    604800
+@       IN      SOA     chimay.beer. root.chimay.beer. (
+                              1         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+                NS      chimay.beer.
+                TXT     "A beer to find the way"
+
+localhost       A       127.0.0.1
+
+chimay.beer.    A       192.168.42.11
+ns              A       192.168.42.10
+db              A       192.168.42.12
+ftp             CNAME   chimay.beer.
+www             CNAME   chimay.beer.
